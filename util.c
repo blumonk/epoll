@@ -2,11 +2,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <strings.h>
 #include <netinet/in.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <sys/fcntl.h>
+#include <sys/wait.h>
+#include <errno.h>
 
 void error(char *msg) {
     perror(msg);
@@ -41,3 +44,28 @@ int make_non_blocking(int fd) {
     return 0;
 }
 
+void log_pid(char *file) {
+    FILE *f = fopen(file, "w");
+    if (f == NULL) {
+        error("Failed to open log file");
+    }
+    fprintf(f, "%d", getpid());
+    fclose(f);
+}
+
+void handle_sigchld(int sig) {
+    int saved_errno = errno;
+    while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+    errno = saved_errno;
+}
+
+void reap_zombies() {
+    struct sigaction sa;
+    sa.sa_handler = &handle_sigchld;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+    if (sigaction(SIGCHLD, &sa, 0) == -1) {
+        perror(0);
+        exit(1);
+    }
+}

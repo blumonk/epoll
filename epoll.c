@@ -4,14 +4,31 @@
 #include <netdb.h>
 #include <errno.h>
 #include <sys/epoll.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 
 #include "util.h"
 
 #define MAX_CONNS 16
 #define MAX_EVENTS 16
+#define LOG_FILE "/tmp/netsh.pid"
+
+void test_handle(int fd) {
+    if (!fork()) {
+        printf("CHILD IN! %d\n", getpid());
+        close(fd);
+        exit(0);
+    } 
+    printf("PARENT IN %d, fd=%d\n", getpid(), fd);
+    close(fd);
+}
 
 int main(int argc, char *argv[]) {
+
+    // Daemonize
+    log_pid(LOG_FILE);
+    reap_zombies();
+
     int lsock, epollfd;
     struct epoll_event *events;
 
@@ -35,7 +52,6 @@ int main(int argc, char *argv[]) {
         error("Error on epoll_ctl");
 
     events = calloc(MAX_EVENTS, sizeof(event_type));
-
     // Event loop
     while (1) {
         int n, i, s;
@@ -80,7 +96,7 @@ int main(int argc, char *argv[]) {
                 }
                 continue;
             } else {
-                // I/O event
+                test_handle(events[i].data.fd);
             }
         }
     }
