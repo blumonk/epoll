@@ -1,15 +1,17 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
 #include "util.h"
 
-#define MAX_CONNS 8
+#define MAX_CONNS 16
+#define MAX_EVENTS 16
 
 int main(int argc, char *argv[]) {
     int lsock, epollfd;
-    struct epoll_event event;
+    struct epoll_event *events;
 
     if (argc < 2) {
         fprintf(stderr, "Port number must be provided\n");
@@ -24,11 +26,35 @@ int main(int argc, char *argv[]) {
     if ((epollfd = epoll_create1(0)) == -1) 
         error("Failed to create epoll instance");
 
-    event.data.fd = lsock;
-    event.events = EPOLLIN | EPOLLET;
-    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, lsock, &event) == -1)
+    struct epoll_event event_type;
+    event_type.data.fd = lsock;
+    event_type.events = EPOLLIN | EPOLLET;
+    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, lsock, &event_type) == -1)
         error("Error on epoll_ctl");
 
+    events = calloc(MAX_EVENTS, sizeof(event_type));
+
+    // Event loop
+    while (1) {
+        int n, i;
+        n = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        for (i = 0; i < n; ++i) {
+            if ((events[i].events & EPOLLERR) || 
+                (events[i].events & EPOLLHUP) || 
+                (!(events[i].events & EPOLLIN))) {
+                perror("Epoll event error");
+                close(events[i].data.fd);
+                continue;
+            } else if (lsock == events[i].data.fd) {
+                // Connection request
+            } else {
+                // I/O event
+            }
+        }
+    }
+
+    free(events);
+    close(lsock);
     return EXIT_SUCCESS;
 }
 
