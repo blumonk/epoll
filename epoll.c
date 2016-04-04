@@ -8,23 +8,39 @@
 #include <sys/socket.h>
 
 #include "util.h"
+#include "worker.h"
 
 #define MAX_CONNS 16
 #define MAX_EVENTS 16
+#define BUF_SIZE 4096
 #define LOG_FILE "/tmp/netsh.pid"
 
 void test_handle(int fd) {
-    if (!fork()) {
-        printf("CHILD IN! %d\n", getpid());
+    if (fork() == 0) {
+        printf("Started child!\n");
+        int cnt = 0, ptr = 0;
+        char buf[BUF_SIZE];
+        while (1) {
+            cnt = read(fd, buf + ptr, 512 - cnt); 
+            /*if (cnt == -1) {*/
+                /*printf("Finished with -1\n");*/
+                /*break;*/
+            /*}*/
+            if (cnt == 0) {
+                printf("Finished with 0\n");
+                break;
+            }
+            ptr += cnt;
+        }
+        /*printf("%s\n", buf);*/
+        int i = 0;
         close(fd);
         exit(0);
     } 
-    printf("PARENT IN %d, fd=%d\n", getpid(), fd);
     close(fd);
 }
 
 int main(int argc, char *argv[]) {
-
     // Daemonize
     log_pid(LOG_FILE);
     reap_zombies();
@@ -48,6 +64,7 @@ int main(int argc, char *argv[]) {
     struct epoll_event event_type;
     event_type.data.fd = lsock;
     event_type.events = EPOLLIN | EPOLLET;
+    /*event_type.events = EPOLLIN;*/
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, lsock, &event_type) == -1)
         error("Error on epoll_ctl");
 
@@ -82,10 +99,8 @@ int main(int argc, char *argv[]) {
                             sizeof(hbuf), sbuf, sizeof(sbuf), 
                             NI_NUMERICHOST | NI_NUMERICSERV);
 
-                    if (s == 0)
-                        printf("Hello, %s %s\n", hbuf, sbuf);
+                    if (s == 0) printf("Hello, %s %s\n", hbuf, sbuf);
 
-                    s = make_non_blocking(connfd);
                     if (s == -1)
                         error("Failed to make connection socket non-blocking");
                     event_type.data.fd = connfd;
