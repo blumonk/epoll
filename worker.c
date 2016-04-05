@@ -20,11 +20,10 @@ int exec(command *cmd) {
 #define SAFE(val) \
     if (val == -1) exit(1); 
 
-int run(command** commands, size_t n, int outfd) {
+void run(command** commands, ssize_t n, int sockfd) {
     int pipes[2 * n];
     int pids[n];
-    int in = dup(STDIN_FILENO);
-    int out = dup(outfd);
+    SAFE(dup2(sockfd, STDIN_FILENO));
     for (int i = 0; i < n - 1; i++) {
         SAFE(pipe(pipes + 2 * i));
         int r = pipes[i * 2];
@@ -35,11 +34,8 @@ int run(command** commands, size_t n, int outfd) {
         SAFE(pids[i]);
         SAFE(dup2(r, STDIN_FILENO));
     }
-    SAFE(dup2(out, STDOUT_FILENO));
-    SAFE(close(out));
+    SAFE(dup2(sockfd, STDOUT_FILENO));
     pids[n - 1] = exec(commands[n - 1]);
     SAFE(pids[n - 1]);
-    wait(NULL);
-    return in;
 }
 

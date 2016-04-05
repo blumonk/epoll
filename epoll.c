@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <stdlib.h>
 #include <netdb.h>
 #include <errno.h>
@@ -18,18 +19,20 @@
 
 void test_handle(int fd) {
     if (fork() == 0) {
-        /*ssize_t total = 0, cnt = 0;*/
-        /*char buf[BUF_SIZE];*/
-        /*while (1) {*/
-            /*total = read(fd, buf + total, BUF_SIZE - total); */
-            /*if (cnt == 0) {*/
-                /*printf("Finished with 0\n");*/
-                /*break;*/
-            /*}*/
-            /*total += cnt;*/
-        /*}*/
-        /*printf("%s\n", buf);*/
-        close(fd);
+        ssize_t total = 0, cnt = 0, cr = 0;
+        char buf[BUF_SIZE];
+        while (!cr) {
+            cnt = read(fd, buf + total, 1); 
+            if (cnt == 0) 
+                break;
+            total += cnt;
+            if (buf[total - 1] == '\n')
+                break;
+        }
+        command **cmds = parse(buf, total);
+        ssize_t n = cmd_cnt(buf, total);
+        run(cmds, n, fd);
+        wait(NULL);
         exit(0);
     } 
     close(fd);
@@ -59,7 +62,6 @@ int main(int argc, char *argv[]) {
     struct epoll_event event_type;
     event_type.data.fd = lsock;
     event_type.events = EPOLLIN | EPOLLET;
-    /*event_type.events = EPOLLIN;*/
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, lsock, &event_type) == -1)
         error("Error on epoll_ctl");
 
@@ -70,8 +72,8 @@ int main(int argc, char *argv[]) {
         n = epoll_wait(epollfd, events, MAX_EVENTS, -1);
         for (i = 0; i < n; ++i) {
             if ((events[i].events & EPOLLERR) || 
-                (events[i].events & EPOLLHUP) || 
-                (!(events[i].events & EPOLLIN))) {
+                    (events[i].events & EPOLLHUP) || 
+                    (!(events[i].events & EPOLLIN))) {
                 perror("Epoll event error");
                 close(events[i].data.fd);
                 continue;
