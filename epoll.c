@@ -9,6 +9,7 @@
 
 #include "util.h"
 #include "worker.h"
+#include "parse.h"
 
 #define MAX_CONNS 16
 #define MAX_EVENTS 16
@@ -17,23 +18,17 @@
 
 void test_handle(int fd) {
     if (fork() == 0) {
-        printf("Started child!\n");
-        int cnt = 0, ptr = 0;
-        char buf[BUF_SIZE];
-        while (1) {
-            cnt = read(fd, buf + ptr, 512 - cnt); 
-            /*if (cnt == -1) {*/
-                /*printf("Finished with -1\n");*/
+        /*ssize_t total = 0, cnt = 0;*/
+        /*char buf[BUF_SIZE];*/
+        /*while (1) {*/
+            /*total = read(fd, buf + total, BUF_SIZE - total); */
+            /*if (cnt == 0) {*/
+                /*printf("Finished with 0\n");*/
                 /*break;*/
             /*}*/
-            if (cnt == 0) {
-                printf("Finished with 0\n");
-                break;
-            }
-            ptr += cnt;
-        }
+            /*total += cnt;*/
+        /*}*/
         /*printf("%s\n", buf);*/
-        int i = 0;
         close(fd);
         exit(0);
     } 

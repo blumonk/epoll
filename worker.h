@@ -6,6 +6,7 @@ typedef struct command {
     char **args;
 } command;
 
-int run(struct command** commands, size_t n); 
+int run(struct command** commands, size_t n, int outfd); 
+int exec(command *cmd);
 
 #endif

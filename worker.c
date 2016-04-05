@@ -3,9 +3,11 @@
 #include <fcntl.h>
 #include <stdlib.h>
 
+#include <stdio.h>
+
 #include "worker.h"
 
-int exec(struct command *cmd) {
+int exec(command *cmd) {
     pid_t pid = fork();
     if (pid == -1) {
         return -1;
@@ -18,11 +20,11 @@ int exec(struct command *cmd) {
 #define SAFE(val) \
     if (val == -1) exit(1); 
 
-int run(struct command** commands, size_t n) {
+int run(command** commands, size_t n, int outfd) {
     int pipes[2 * n];
     int pids[n];
-    int this_stdin = dup(STDIN_FILENO);
-    int this_stdout = dup(STDOUT_FILENO);
+    int in = dup(STDIN_FILENO);
+    int out = dup(outfd);
     for (int i = 0; i < n - 1; i++) {
         SAFE(pipe(pipes + 2 * i));
         int r = pipes[i * 2];
@@ -33,11 +35,11 @@ int run(struct command** commands, size_t n) {
         SAFE(pids[i]);
         SAFE(dup2(r, STDIN_FILENO));
     }
-    SAFE(dup2(this_stdout, STDOUT_FILENO));
-    SAFE(close(this_stdout));
+    SAFE(dup2(out, STDOUT_FILENO));
+    SAFE(close(out));
     pids[n - 1] = exec(commands[n - 1]);
     SAFE(pids[n - 1]);
     wait(NULL);
-    return 0;
+    return in;
 }
 
