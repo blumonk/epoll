@@ -40,18 +40,17 @@ void test_handle(int fd) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Port number must be provided\n");
+        return 0;
+    }
 
-    demonize();
+    daemonize();
     log_pid(LOG_FILE);
     reap_zombies();
 
     int lsock, epollfd;
     struct epoll_event *events;
-
-    if (argc < 2) {
-        fprintf(stderr, "Port number must be provided\n");
-        return 0;
-    }
 
     lsock = listen_sock(argv[1]);
     if (make_non_blocking(lsock) == -1) 
@@ -84,7 +83,6 @@ int main(int argc, char *argv[]) {
                     struct sockaddr in_addr;
                     socklen_t in_len;
                     int connfd;
-                    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 
                     in_len = sizeof in_addr;
                     connfd = accept(lsock, &in_addr, &in_len);
@@ -93,12 +91,6 @@ int main(int argc, char *argv[]) {
                             perror("accept");
                         break;
                     }
-                    s = getnameinfo(&in_addr, in_len, hbuf, 
-                            sizeof(hbuf), sbuf, sizeof(sbuf), 
-                            NI_NUMERICHOST | NI_NUMERICSERV);
-
-                    if (s == 0) 
-                        printf("Hello, %s %s\n", hbuf, sbuf);
                     event_type.data.fd = connfd;
                     event_type.events = EPOLLIN | EPOLLET;
                     s = epoll_ctl(epollfd, EPOLL_CTL_ADD, connfd, &event_type);

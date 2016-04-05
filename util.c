@@ -70,7 +70,7 @@ void reap_zombies() {
     }
 }
 
-void demonize() {
+void daemonize() {
     if (fork() != 0)
         exit(0);
     if (setsid() == -1)
