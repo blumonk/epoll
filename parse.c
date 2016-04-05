@@ -28,7 +28,6 @@ ssize_t args_cnt(char *buffer, ssize_t from, ssize_t to) {
     return res;
 }
 
-// from included, to excluded
 command* parse_one(char *buffer, ssize_t from, ssize_t to) {
     ssize_t i;
     command* cmd = (command*) malloc(sizeof(command*));

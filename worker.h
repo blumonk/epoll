@@ -7,6 +7,6 @@ typedef struct command {
 } command;
 
 void run(command** commands, ssize_t n, int sockfd); 
-void handle_conn(int fd);
+void handle_sock(int sockfd);
 
 #endif

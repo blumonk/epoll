@@ -2,10 +2,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
-
 #include <stdio.h>
 
 #include "worker.h"
+#include "parse.h"
+
+#define BUF_SIZE 4096
 
 int exec(command *cmd) {
     pid_t pid = fork();
@@ -38,5 +40,27 @@ void run(command** commands, ssize_t n, int sockfd) {
     SAFE(dup2(sockfd, STDERR_FILENO));
     pids[n - 1] = exec(commands[n - 1]);
     SAFE(pids[n - 1]);
+}
+
+void handle_sock(int sockfd) {
+    if (fork() == 0) {
+        ssize_t total = 0, cnt = 0;
+        char buf[BUF_SIZE];
+        while (1) {
+            cnt = read(sockfd, buf + total, 1); 
+            if (cnt == 0) 
+                break;
+            total += cnt;
+            if (buf[total - 1] == '\n')
+                break;
+        }
+        command **cmds = parse(buf, total - 1);
+        ssize_t n = cmd_cnt(buf, total - 1);
+        run(cmds, n, sockfd);
+        wait(NULL);
+        close(sockfd);
+        exit(0);
+    } 
+    close(sockfd);
 }
 

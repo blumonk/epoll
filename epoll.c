@@ -14,30 +14,7 @@
 
 #define MAX_CONNS 16
 #define MAX_EVENTS 16
-#define BUF_SIZE 4096
 #define LOG_FILE "/tmp/netsh.pid"
-
-void test_handle(int fd) {
-    if (fork() == 0) {
-        ssize_t total = 0, cnt = 0;
-        char buf[BUF_SIZE];
-        while (1) {
-            cnt = read(fd, buf + total, 1); 
-            if (cnt == 0) 
-                break;
-            total += cnt;
-            if (buf[total - 1] == '\n')
-                break;
-        }
-        command **cmds = parse(buf, total - 1);
-        ssize_t n = cmd_cnt(buf, total - 1);
-        run(cmds, n, fd);
-        wait(NULL);
-        close(fd);
-        exit(0);
-    } 
-    close(fd);
-}
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -99,7 +76,7 @@ int main(int argc, char *argv[]) {
                 }
                 continue;
             } else {
-                test_handle(events[i].data.fd);
+                handle_sock(events[i].data.fd);
             }
         }
     }
