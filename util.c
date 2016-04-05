@@ -70,3 +70,12 @@ void reap_zombies() {
     }
 }
 
+void demonize() {
+    if (fork() != 0)
+        exit(0);
+    if (setsid() == -1)
+        error("Failed to demonize");
+    if (fork() != 0)
+        exit(0);
+}
+

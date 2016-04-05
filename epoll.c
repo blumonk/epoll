@@ -19,9 +19,9 @@
 
 void test_handle(int fd) {
     if (fork() == 0) {
-        ssize_t total = 0, cnt = 0, cr = 0;
+        ssize_t total = 0, cnt = 0;
         char buf[BUF_SIZE];
-        while (!cr) {
+        while (1) {
             cnt = read(fd, buf + total, 1); 
             if (cnt == 0) 
                 break;
@@ -29,17 +29,19 @@ void test_handle(int fd) {
             if (buf[total - 1] == '\n')
                 break;
         }
-        command **cmds = parse(buf, total);
-        ssize_t n = cmd_cnt(buf, total);
+        command **cmds = parse(buf, total - 1);
+        ssize_t n = cmd_cnt(buf, total - 1);
         run(cmds, n, fd);
         wait(NULL);
+        close(fd);
         exit(0);
     } 
     close(fd);
 }
 
 int main(int argc, char *argv[]) {
-    // Daemonize
+
+    demonize();
     log_pid(LOG_FILE);
     reap_zombies();
 
@@ -91,15 +93,12 @@ int main(int argc, char *argv[]) {
                             perror("accept");
                         break;
                     }
-
                     s = getnameinfo(&in_addr, in_len, hbuf, 
                             sizeof(hbuf), sbuf, sizeof(sbuf), 
                             NI_NUMERICHOST | NI_NUMERICSERV);
 
-                    if (s == 0) printf("Hello, %s %s\n", hbuf, sbuf);
-
-                    if (s == -1)
-                        error("Failed to make connection socket non-blocking");
+                    if (s == 0) 
+                        printf("Hello, %s %s\n", hbuf, sbuf);
                     event_type.data.fd = connfd;
                     event_type.events = EPOLLIN | EPOLLET;
                     s = epoll_ctl(epollfd, EPOLL_CTL_ADD, connfd, &event_type);

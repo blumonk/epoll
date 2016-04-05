@@ -35,6 +35,7 @@ void run(command** commands, ssize_t n, int sockfd) {
         SAFE(dup2(r, STDIN_FILENO));
     }
     SAFE(dup2(sockfd, STDOUT_FILENO));
+    SAFE(dup2(sockfd, STDERR_FILENO));
     pids[n - 1] = exec(commands[n - 1]);
     SAFE(pids[n - 1]);
 }
